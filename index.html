@@ -102,8 +102,8 @@
                     </div>
                     
                     <!-- GitHub Source Code Button -->
-                    <a href="https://github.com/sawyerbobk563-code" target="_blank" title="View Source Code" class="bg-black text-white border-4 border-black px-4 py-3 brutal-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0f0f0f] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center">
-                        <i class="fa-brands fa-github text-2xl"></i>
+                    <a href="https://github.com/sawyerbobk563-code" target="_blank" title="View Source Code" class="bg-black text-white border-4 border-black px-3 py-2 brutal-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0f0f0f] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center self-center">
+                        <i class="fa-brands fa-github text-xl"></i>
                     </a>
                 </div>
                 
@@ -120,7 +120,7 @@
 
     <script>
         const CLOUDFLARE_WORKER_URL = "https://dualchat-backend.sawyerbobk563.workers.dev/"; 
-        const GROQ_API_KEY = "Import key here from groq dashbord";
+        const GROQ_API_KEY = "add groq api key here";
         const GROQ_MODEL = "openai/gpt-oss-120b";
         
         let currentMode = 'community';
@@ -186,15 +186,10 @@
             // Scroll Event Listener for Scroll-To-Bottom Button
             chatBox.addEventListener('scroll', () => {
                 const scrollBtn = document.getElementById('scroll-to-bottom');
-                if (currentMode === 'community') {
-                    // Check if scrolled up by more than 100px
-                    if (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight > 100) {
-                        scrollBtn.classList.remove('hidden');
-                        scrollBtn.classList.add('flex');
-                    } else {
-                        scrollBtn.classList.add('hidden');
-                        scrollBtn.classList.remove('flex');
-                    }
+                // Check if scrolled up by more than 100px
+                if (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight > 100) {
+                    scrollBtn.classList.remove('hidden');
+                    scrollBtn.classList.add('flex');
                 } else {
                     scrollBtn.classList.add('hidden');
                     scrollBtn.classList.remove('flex');
@@ -472,8 +467,13 @@
                 </div>
             `;
             
+            const isScrolledUp = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight > 100;
             chatBox.appendChild(wrapper);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // Only auto-scroll if the user is already near the bottom, OR if the message is from the user
+            if (!isScrolledUp || type === 'me') {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
         }
 
         function renderSystemMessage(text) {
