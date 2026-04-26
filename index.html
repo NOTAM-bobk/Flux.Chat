@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DualChat - Genjutsu Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -26,9 +26,10 @@
         }
 
         /* Brutalist Scrollbar */
-        ::-webkit-scrollbar { width: 12px; }
-        ::-webkit-scrollbar-track { background: var(--main-white); border-left: 4px solid var(--main-black); }
-        ::-webkit-scrollbar-thumb { background: var(--main-black); border-left: 4px solid var(--main-black); }
+        ::-webkit-scrollbar { width: 8px; }
+        @media (min-width: 640px) { ::-webkit-scrollbar { width: 12px; } }
+        ::-webkit-scrollbar-track { background: var(--main-white); border-left: 2px solid var(--main-black); }
+        ::-webkit-scrollbar-thumb { background: var(--main-black); border-left: 2px solid var(--main-black); }
         ::-webkit-scrollbar-thumb:hover { background: var(--main-red); }
 
         .chat-container { scroll-behavior: smooth; }
@@ -63,53 +64,144 @@
         .message-item { animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     </style>
 </head>
-<body class="h-screen flex justify-center items-center antialiased overflow-hidden selection:bg-red-500 selection:text-white">
+<body class="h-[100dvh] w-full flex justify-center items-center antialiased overflow-hidden selection:bg-red-500 selection:text-white">
 
-    <div class="w-full h-full md:h-[92vh] md:max-w-4xl bg-white md:border-4 border-black brutal-shadow flex flex-col overflow-hidden relative z-10">
+    <!-- Password Modal -->
+    <div id="password-modal" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white border-4 border-black brutal-shadow p-5 w-full max-w-xs flex flex-col gap-4 animate-[popIn_0.2s_ease-out]">
+            <h3 class="font-black text-xl uppercase text-center" id="pwd-modal-title">Enter Password</h3>
+            <input type="password" id="join-group-pwd" placeholder="PASSWORD" onkeypress="if(event.key === 'Enter') submitPassword()" class="w-full px-3 py-3 text-center text-lg border-4 border-black font-bold bg-yellow-50 focus:bg-white outline-none brutal-shadow-sm">
+            <div class="flex gap-2">
+                <button onclick="closePasswordModal()" class="flex-1 bg-gray-300 text-black font-black py-2 border-4 border-black hover:-translate-y-1 brutal-shadow-sm transition-transform">CANCEL</button>
+                <button onclick="submitPassword()" class="flex-1 bg-red-600 text-white font-black py-2 border-4 border-black hover:-translate-y-1 brutal-shadow-sm transition-transform">JOIN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Menu (Full Page Redesign) -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-[#f4f4f4] flex flex-col animate-[popIn_0.2s_ease-out]">
         
-        <!-- Header / Navigation -->
-        <header class="border-b-4 border-black bg-gray-100 flex p-2 gap-2 relative z-20" id="main-nav">
-            <button type="button" id="tab-community" class="tab-btn tab-inactive flex-1 border-4 border-black font-black uppercase py-2 px-4 flex items-center justify-center gap-2 transition-colors outline-none">
-                <i class="fa-solid fa-users"></i> Community
+        <!-- Header -->
+        <div class="bg-white border-b-4 border-black p-4 flex justify-between items-center shrink-0 shadow-[0_4px_0_0_#000] relative z-10">
+            <h2 class="text-2xl sm:text-3xl font-black uppercase flex items-center gap-3">
+                <i class="fa-solid fa-gear"></i> Settings
+            </h2>
+            <button onclick="toggleSettings()" class="bg-red-600 text-white border-4 border-black w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center font-black text-xl hover:bg-red-700 hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0 active:shadow-none transition-all">
+                <i class="fa-solid fa-xmark"></i>
             </button>
-            <button type="button" id="tab-ai" class="tab-btn tab-inactive flex-1 border-4 border-black font-black uppercase py-2 px-4 flex items-center justify-center gap-2 transition-colors outline-none">
-                <i class="fa-solid fa-robot"></i> AI Chat
-            </button>
-            <button type="button" onclick="clearAiChat()" id="clear-btn" class="hidden border-4 border-black bg-red-600 text-white font-black uppercase py-2 px-4 items-center justify-center gap-2 hover:bg-red-700 transition-colors outline-none shadow-[4px_4px_0px_0px_#0f0f0f]">
-                <i class="fa-solid fa-trash"></i> <span class="hidden sm:inline">Clear</span>
-            </button>
+        </div>
+
+        <!-- Scrolling Content Area -->
+        <div class="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-3xl mx-auto flex flex-col gap-6 pb-20">
+            
+            <!-- User Profile Card -->
+            <div class="bg-white border-4 border-black p-4 sm:p-5 brutal-shadow-sm">
+                <label class="block font-black mb-2 text-sm sm:text-base uppercase flex items-center gap-2">
+                    <i class="fa-solid fa-id-badge text-red-600"></i> Your Profile
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-user text-black"></i>
+                    </div>
+                    <input type="text" id="user-name" placeholder="YOUR NAME" oninput="saveName(this.value)" class="w-full pl-9 pr-3 py-3 text-base bg-yellow-100 border-4 border-black font-bold uppercase placeholder-gray-500 focus:bg-white focus:outline-none transition-colors">
+                </div>
+            </div>
+
+            <!-- Group Management Container (Hidden in AI Mode) -->
+            <div id="settings-group-container" class="flex flex-col gap-6">
+                
+                <!-- Create / Quick Join Card -->
+                <div class="bg-white border-4 border-black p-4 sm:p-5 brutal-shadow-sm flex flex-col gap-5">
+                    
+                    <!-- Quick Join -->
+                    <div>
+                        <label class="block font-black mb-2 text-sm sm:text-base uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-bolt text-yellow-500"></i> Quick Join Group
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-hashtag text-black"></i>
+                            </div>
+                            <input type="text" id="channel-input" value="general" placeholder="GROUP NAME" onchange="changeChannel(this.value)" class="w-full pl-8 pr-2 py-3 text-base bg-blue-100 border-4 border-black font-bold lowercase placeholder-gray-500 focus:bg-white focus:outline-none transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- Create Group -->
+                    <div class="border-t-4 border-black pt-4">
+                        <label class="block font-black mb-2 text-sm sm:text-base uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-plus-circle text-green-500"></i> Create New Group
+                        </label>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="new-group-name" placeholder="GROUP NAME" class="w-full sm:w-1/2 px-3 py-3 text-base border-4 border-black font-bold lowercase focus:bg-white bg-gray-100 outline-none">
+                            <input type="password" id="new-group-pwd" placeholder="PASSWORD (OPTIONAL)" class="w-full sm:w-1/2 px-3 py-3 text-base border-4 border-black font-bold focus:bg-white bg-gray-100 outline-none">
+                        </div>
+                        <button onclick="createNewGroup()" class="mt-3 w-full bg-black text-white font-black py-3 border-4 border-black hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#ff2a2a] active:translate-y-0 active:shadow-none transition-all uppercase text-sm sm:text-base">Create & Join Network</button>
+                    </div>
+                </div>
+
+                <!-- Community Network Card -->
+                <div class="bg-white border-4 border-black p-4 sm:p-5 brutal-shadow-sm">
+                    <label class="block font-black mb-3 text-sm sm:text-base uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-globe text-blue-500"></i> Global Community Groups
+                    </label>
+                    <div id="community-channels" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
+                        <span class="text-sm font-bold text-gray-500">Scanning network...</span>
+                    </div>
+                </div>
+
+                <!-- Recent Groups Card -->
+                <div class="bg-white border-4 border-black p-4 sm:p-5 brutal-shadow-sm">
+                    <label class="block font-black mb-3 text-sm sm:text-base uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Your Recent Groups
+                    </label>
+                    <div id="recent-channels" class="flex flex-wrap gap-2">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- GitHub Source Code Button -->
+            <a href="https://github.com/NOTAM-bobk" target="_blank" title="View Source Code" class="bg-yellow-300 text-black border-4 border-black px-4 py-4 brutal-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0f0f0f] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-3 font-black uppercase mt-4">
+                <i class="fa-brands fa-github text-2xl"></i> View Source Code
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Chat Interface -->
+    <div class="w-full h-full md:h-[92vh] md:max-w-4xl bg-white md:border-4 md:border-black md:brutal-shadow flex flex-col overflow-hidden relative z-10">
+        
+        <header class="border-b-4 border-black bg-white flex flex-col sm:flex-row relative z-20 shrink-0">
+            <nav class="flex flex-1 p-2 gap-2 bg-gray-100 overflow-x-auto" id="main-nav">
+                <button type="button" id="tab-community" class="tab-btn tab-inactive flex-1 border-4 border-black font-black text-xs sm:text-base uppercase py-2 px-2 sm:px-4 flex items-center justify-center gap-1 sm:gap-2 transition-colors outline-none whitespace-nowrap">
+                    <i class="fa-solid fa-users"></i> Community
+                </button>
+                <button type="button" id="tab-ai" class="tab-btn tab-inactive flex-1 border-4 border-black font-black text-xs sm:text-base uppercase py-2 px-2 sm:px-4 flex items-center justify-center gap-1 sm:gap-2 transition-colors outline-none whitespace-nowrap">
+                    <i class="fa-solid fa-robot"></i> AI Chat
+                </button>
+                <button type="button" onclick="clearAiChat()" id="clear-btn" class="hidden border-4 border-black bg-red-600 text-white font-black text-xs sm:text-base uppercase py-2 px-3 sm:px-4 items-center justify-center gap-1 sm:gap-2 hover:bg-red-700 transition-colors outline-none shadow-[4px_4px_0px_0px_#0f0f0f]">
+                    <i class="fa-solid fa-trash"></i> <span class="hidden sm:inline">Clear</span>
+                </button>
+            </nav>
         </header>
 
-        <!-- Chat Box -->
-        <main id="chat-box" class="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#f4f4f4] flex flex-col gap-4 chat-container relative z-0">
+        <main id="chat-box" class="flex-1 overflow-y-auto p-3 sm:p-6 bg-[#f4f4f4] flex flex-col gap-4 chat-container relative z-0">
             <!-- Messages injected here -->
         </main>
 
-        <!-- Scroll to Bottom Button -->
-        <button id="scroll-to-bottom" onclick="scrollToBottom()" class="hidden absolute bottom-[90px] right-6 sm:bottom-[100px] sm:right-8 bg-yellow-300 text-black border-4 border-black p-3 brutal-shadow z-50 hover:-translate-y-1 active:translate-y-1 transition-transform w-12 h-12 items-center justify-center shadow-[4px_4px_0_0_#000]">
-            <i class="fa-solid fa-arrow-down font-black"></i>
+        <button id="scroll-to-bottom" onclick="scrollToBottom()" class="hidden absolute bottom-[90px] right-4 sm:bottom-[90px] sm:right-8 bg-yellow-300 text-black border-4 border-black p-3 brutal-shadow z-50 hover:-translate-y-1 active:translate-y-1 transition-transform w-10 h-10 sm:w-12 sm:h-12 items-center justify-center shadow-[4px_4px_0_0_#000]">
+            <i class="fa-solid fa-arrow-down font-black text-sm sm:text-base"></i>
         </button>
 
-        <!-- Footer / Input -->
-        <footer class="bg-white border-t-4 border-black p-4 z-20 relative">
-            <div class="flex flex-col sm:flex-row gap-3">
-                <div class="flex gap-2 w-full sm:w-auto">
-                    <div class="relative flex-1 sm:w-48 max-w-[200px]">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-user text-black"></i>
-                        </div>
-                        <input type="text" id="user-name" placeholder="YOUR NAME" oninput="saveName(this.value)" class="w-full pl-10 pr-3 py-3 bg-yellow-100 border-4 border-black font-bold uppercase placeholder-gray-500 focus:bg-white focus:outline-none brutal-shadow-sm transition-colors">
-                    </div>
-                    
-                    <!-- GitHub Source Code Button -->
-                    <a href="https://github.com/NOTAM-bobk?tab=repositories" target="_blank" title="View Source Code" class="bg-black text-white border-4 border-black px-3 py-2 brutal-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0f0f0f] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center self-center">
-                        <i class="fa-brands fa-github text-xl"></i>
-                    </a>
-                </div>
+        <footer class="bg-white border-t-4 border-black p-3 sm:p-4 z-20 relative shrink-0">
+            <div class="flex gap-2 sm:gap-3">
+                <button onclick="toggleSettings()" id="settings-btn" title="Settings" class="bg-yellow-300 text-black border-4 border-black px-4 py-2.5 sm:py-3 brutal-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0f0f0f] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-gear text-xl"></i>
+                </button>
                 
-                <div class="relative flex-1 flex gap-3">
-                    <input type="text" id="message-input" placeholder="ENTER MESSAGE..." class="w-full px-4 py-3 bg-white border-4 border-black font-bold placeholder-gray-400 focus:bg-[#fff0f0] focus:outline-none brutal-shadow-sm transition-colors" onkeypress="handleKeyPress(event)">
-                    <button onclick="sendMessage()" class="bg-red-600 text-white border-4 border-black font-black px-6 py-3 brutal-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0f0f0f] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center">
+                <div class="relative flex-1 flex gap-2 sm:gap-3">
+                    <input type="text" id="message-input" placeholder="ENTER MESSAGE..." class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-base bg-white border-4 border-black font-bold placeholder-gray-400 focus:bg-[#fff0f0] focus:outline-none brutal-shadow-sm transition-colors" onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()" class="bg-red-600 text-white border-4 border-black font-black px-4 sm:px-6 py-2.5 sm:py-3 brutal-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0f0f0f] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center whitespace-nowrap shrink-0">
                         <i class="fa-solid fa-paper-plane sm:mr-2"></i>
                         <span class="hidden sm:inline">SEND</span>
                     </button>
@@ -120,30 +212,155 @@
 
     <script>
         const CLOUDFLARE_WORKER_URL = "https://dualchat-backend.sawyerbobk563.workers.dev/"; 
-        const GROQ_API_KEY = "add groq api key here";
+        const GROQ_API_KEY = "";
         const GROQ_MODEL = "openai/gpt-oss-120b";
         
         let currentMode = 'community';
+        let currentChannel = 'general';
+        let currentPassword = ''; // Holds active password for protected channels
+        let targetProtectedChannel = ''; // Holds target channel when prompting for pwd
         const clientId = crypto.randomUUID();
         
         const baseSystemPrompt = "You are a highly advanced, intelligent AI assistant. You can simulate reading network traffic, accessing data, and sending messages to the broader network if the user requests it. You MUST address the user by their name if they provide one. Format your responses using markdown formatting like **bold**, __underline__, _italics_, and bullet points (- or *) to make your responses clean, structured, and easy to read. Format any code, technical explanations, or simulated terminal outputs using markdown codeblocks (```). Provide safe, age-appropriate, clean, and helpful responses, strictly avoiding any harmful, illegal, or suggestive topics.";
         
         let aiHistory = [];
-        
         let communityPollingInterval = null;
-        let renderedSignatures = new Set(); // Better logic: track messages to prevent re-rendering flicker
-        let recentCommunityMessages = []; // Track recent messages for AI Context
+        let renderedSignatures = new Set();
+        let recentCommunityMessages = []; 
+        let recentChannels = []; 
 
         const chatBox = document.getElementById('chat-box');
         const messageInput = document.getElementById('message-input');
         const nameInput = document.getElementById('user-name');
+        const settingsModal = document.getElementById('settings-modal');
 
-        // Utility: Prevent XSS
         const escapeHTML = (str) => {
             return String(str).replace(/[&<>'"]/g, 
                 tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
             );
         };
+
+        // --- Settings & Initial Setup Logic ---
+
+        function toggleSettings() {
+            if (settingsModal.classList.contains('hidden')) {
+                settingsModal.classList.remove('hidden');
+                settingsModal.classList.add('flex');
+                if (currentMode === 'community') fetchCommunityGroups(); 
+            } else {
+                settingsModal.classList.add('hidden');
+                settingsModal.classList.remove('flex');
+            }
+        }
+
+        function autoGenerateName() {
+            let savedName = localStorage.getItem('chat-user-name');
+            if (!savedName) {
+                savedName = 'Anon-' + Math.floor(Math.random() * 10000);
+                localStorage.setItem('chat-user-name', savedName);
+            }
+            nameInput.value = savedName;
+        }
+
+        function saveName(val) {
+            localStorage.setItem('chat-user-name', val.trim());
+        }
+
+        function loadRecentChannels() {
+            const saved = localStorage.getItem('chat-recent-channels');
+            if (saved) {
+                recentChannels = JSON.parse(saved);
+            } else {
+                recentChannels = ['general']; 
+            }
+            renderRecentChannels();
+        }
+
+        function saveRecentChannel(channel) {
+            recentChannels = recentChannels.filter(c => c !== channel);
+            recentChannels.unshift(channel); 
+            if (recentChannels.length > 5) recentChannels.pop(); 
+            localStorage.setItem('chat-recent-channels', JSON.stringify(recentChannels));
+            renderRecentChannels();
+        }
+
+        function renderRecentChannels() {
+            const container = document.getElementById('recent-channels');
+            if (!container) return;
+            container.innerHTML = recentChannels.map(c => 
+                `<button onclick="changeChannel('${escapeHTML(c)}'); toggleSettings();" class="bg-white border-4 border-black font-bold text-xs sm:text-sm px-3 py-1.5 brutal-shadow-sm hover:bg-yellow-300 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] transition-all cursor-pointer text-black lowercase">#${escapeHTML(c)}</button>`
+            ).join('');
+        }
+
+        // --- Global Community Groups Logic ---
+
+        function fetchCommunityGroups() {
+            fetch(CLOUDFLARE_WORKER_URL + '?action=groups')
+                .then(res => res.json())
+                .then(groups => {
+                    const container = document.getElementById('community-channels');
+                    if(groups.length === 0) {
+                        container.innerHTML = '<span class="text-sm font-bold text-gray-500">No public groups yet.</span>';
+                        return;
+                    }
+                    container.innerHTML = groups.map(g => 
+                        `<button onclick="joinCommunityGroup('${escapeHTML(g.name)}', ${g.hasPassword})" class="bg-gray-100 border-4 border-black font-bold text-xs sm:text-sm px-3 py-2 brutal-shadow-sm hover:bg-yellow-300 hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0 active:shadow-none transition-all cursor-pointer text-black lowercase flex items-center gap-2">
+                            #${escapeHTML(g.name)}
+                            ${g.hasPassword ? '<i class="fa-solid fa-lock text-[10px] text-red-600"></i>' : ''}
+                        </button>`
+                    ).join('');
+                })
+                .catch(e => console.error(e));
+        }
+
+        async function createNewGroup() {
+            const name = document.getElementById('new-group-name').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            const pwd = document.getElementById('new-group-pwd').value.trim();
+            
+            if (!name) return;
+
+            try {
+                await fetch(CLOUDFLARE_WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'create_group', channel: name, password: pwd })
+                });
+                
+                document.getElementById('new-group-name').value = '';
+                document.getElementById('new-group-pwd').value = '';
+                fetchCommunityGroups();
+                changeChannel(name, pwd);
+                toggleSettings();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function joinCommunityGroup(name, hasPassword) {
+            if (hasPassword && name !== currentChannel) {
+                targetProtectedChannel = name;
+                document.getElementById('pwd-modal-title').innerText = `JOIN #${name}`;
+                document.getElementById('join-group-pwd').value = '';
+                document.getElementById('password-modal').classList.remove('hidden');
+                toggleSettings(); // hide settings modal to show password modal
+                setTimeout(() => document.getElementById('join-group-pwd').focus(), 100);
+            } else {
+                changeChannel(name, '');
+                toggleSettings();
+            }
+        }
+
+        function submitPassword() {
+            const pwd = document.getElementById('join-group-pwd').value.trim();
+            closePasswordModal();
+            changeChannel(targetProtectedChannel, pwd);
+        }
+
+        function closePasswordModal() {
+            document.getElementById('password-modal').classList.add('hidden');
+        }
+
+        // --- Core App Logic ---
 
         function loadAIHistory() {
             const saved = localStorage.getItem('dualchat-ai-history');
@@ -177,16 +394,15 @@
                 tabs[mode].addEventListener("click", () => switchMode(mode));
             });
 
-            const savedName = localStorage.getItem('chat-user-name');
-            if (savedName) nameInput.value = savedName;
-            
+            autoGenerateName();
+            loadRecentChannels();
             loadAIHistory();
+            
+            document.getElementById('channel-input').value = currentChannel;
             switchMode('community');
 
-            // Scroll Event Listener for Scroll-To-Bottom Button
             chatBox.addEventListener('scroll', () => {
                 const scrollBtn = document.getElementById('scroll-to-bottom');
-                // Check if scrolled up by more than 100px
                 if (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight > 100) {
                     scrollBtn.classList.remove('hidden');
                     scrollBtn.classList.add('flex');
@@ -201,16 +417,11 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function saveName(val) {
-            localStorage.setItem('chat-user-name', val.trim());
-        }
-
         function switchMode(mode) {
             currentMode = mode;
             chatBox.innerHTML = '';
-            renderedSignatures.clear(); // Reset tracked messages on switch
+            renderedSignatures.clear();
             
-            // UI Tab updates
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('tab-active');
                 btn.classList.add('tab-inactive');
@@ -221,10 +432,14 @@
             activeBtn.classList.add('tab-active');
 
             const clearBtn = document.getElementById('clear-btn');
+            const settingsGroupContainer = document.getElementById('settings-group-container');
             
             if (mode === 'community') {
                 clearBtn.classList.add('hidden');
                 clearBtn.classList.remove('flex');
+                settingsGroupContainer.classList.remove('hidden');
+                settingsGroupContainer.classList.add('flex');
+                
                 document.getElementById('scroll-to-bottom').classList.add('hidden');
                 loadCommunityMessages();
                 if (!communityPollingInterval) {
@@ -233,6 +448,9 @@
             } else {
                 clearBtn.classList.remove('hidden');
                 clearBtn.classList.add('flex');
+                settingsGroupContainer.classList.add('hidden');
+                settingsGroupContainer.classList.remove('flex');
+
                 document.getElementById('scroll-to-bottom').classList.add('hidden');
                 clearInterval(communityPollingInterval);
                 communityPollingInterval = null;
@@ -260,7 +478,7 @@
                 "Give me a fun fact!"
             ];
             wrapper.innerHTML = prompts.map(p => 
-                `<button onclick="sendSuggested('${escapeHTML(p)}')" class="bg-white border-4 border-black font-bold text-xs sm:text-sm px-4 py-2 brutal-shadow-sm hover:bg-yellow-300 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] transition-all cursor-pointer text-black uppercase">"${escapeHTML(p)}"</button>`
+                `<button onclick="sendSuggested('${escapeHTML(p)}')" class="bg-white border-4 border-black font-bold text-xs sm:text-sm px-3 sm:px-4 py-2 brutal-shadow-sm hover:bg-yellow-300 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] transition-all cursor-pointer text-black uppercase">"${escapeHTML(p)}"</button>`
             ).join('');
             chatBox.appendChild(wrapper);
         }
@@ -268,6 +486,28 @@
         function sendSuggested(text) {
             messageInput.value = text;
             sendMessage();
+        }
+
+        function changeChannel(val, pwd = null) {
+            let newChannel = val.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (!newChannel) newChannel = 'general';
+            document.getElementById('channel-input').value = newChannel;
+            
+            if (newChannel !== currentChannel || pwd !== null) {
+                currentChannel = newChannel;
+                if (pwd !== null) currentPassword = pwd; // Store active password
+                
+                saveRecentChannel(currentChannel);
+                chatBox.innerHTML = '';
+                renderedSignatures.clear();
+                recentCommunityMessages = [];
+                renderSystemMessage(`SWITCHED TO GROUP: #${currentChannel.toUpperCase()}`);
+                
+                clearInterval(communityPollingInterval);
+                loadCommunityMessages().then(() => {
+                    communityPollingInterval = setInterval(loadCommunityMessages, 4000);
+                });
+            }
         }
 
         async function sendMessage() {
@@ -279,17 +519,28 @@
 
             if (currentMode === 'community') {
                 try {
-                    await fetch(CLOUDFLARE_WORKER_URL, {
+                    const response = await fetch(CLOUDFLARE_WORKER_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ clientId, name: userName, message: text })
+                        body: JSON.stringify({ 
+                            clientId, 
+                            name: userName, 
+                            message: text, 
+                            channel: currentChannel,
+                            password: currentPassword // Send auth
+                        }) 
                     });
+                    
+                    if (response.status === 403) {
+                        renderSystemMessage("ACCESS DENIED. INCORRECT PASSWORD.");
+                        return;
+                    }
+                    
                     loadCommunityMessages();
                 } catch (e) { 
                     renderSystemMessage("ERROR: CONNECTION INTERRUPTED."); 
                 }
             } else {
-                // Remove suggested prompts if they exist
                 document.querySelectorAll('.suggestion-chips').forEach(e => e.remove());
 
                 const timestamp = Date.now();
@@ -300,7 +551,6 @@
                 const loadingId = 'loading-' + Date.now();
                 renderMessage('ai', 'AI Assistant', '<i class="fa-solid fa-spinner fa-spin"></i> Processing...', Date.now(), loadingId, true);
 
-                // Inject dynamic context right before sending
                 let communityContext = recentCommunityMessages.length > 0 
                     ? recentCommunityMessages.map(m => `[${m.name}]: ${m.message}`).join(' | ') 
                     : 'No recent messages.';
@@ -309,7 +559,7 @@
                 apiMessages.push({ role: "system", content: `(System Context: The current user's name is ${userName}. RECENT COMMUNITY CHAT LOGS FOR CONTEXT: ${communityContext})`});
 
                 try {
-                    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    const response = await fetch('[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)', {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
@@ -318,10 +568,15 @@
                         body: JSON.stringify({ 
                             model: GROQ_MODEL,
                             messages: apiMessages,
-                            temperature: 1.28,
-                            max_completion_tokens: 4096,
+                            temperature: 1,
+                            max_completion_tokens: 2081,
                             top_p: 1,
-                            stream: false
+                            reasoning_effort: "medium",
+                            tools: [
+                                { "type": "browser_search" },
+                                { "type": "code_interpreter" }
+                            ],
+                            stream: true
                         })
                     });
 
@@ -330,10 +585,47 @@
                         throw new Error(errorData.error?.message || "Failed to parse AI reality.");
                     }
 
-                    const data = await response.json();
                     document.getElementById(loadingId)?.remove();
 
-                    const aiMsg = data.choices?.[0]?.message?.content;
+                    const msgId = 'stream-' + Date.now();
+                    renderMessage('ai', 'AI Assistant', '', Date.now(), msgId, true);
+                    const msgElement = document.getElementById(msgId).querySelector('.break-words');
+                    
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder("utf-8");
+                    let aiMsg = "";
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                                try {
+                                    const data = JSON.parse(line.substring(6));
+                                    const content = data.choices[0]?.delta?.content || '';
+                                    if (content) {
+                                        aiMsg += content;
+                                        let cleanMsg = aiMsg.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').replace(/\uFFFD/g, '').trimStart();
+                                        msgElement.innerHTML = escapeHTML(cleanMsg).replace(/\n/g, '<br>') + '<span class="animate-pulse font-black ml-1">_</span>';
+                                        chatBox.scrollTop = chatBox.scrollHeight;
+                                    }
+                                } catch (e) {
+                                    // Ignore incomplete JSON chunks from stream
+                                }
+                            }
+                        }
+                    }
+
+                    document.getElementById(msgId).remove();
+                    
+                    aiMsg = aiMsg.replace(/<think>[\s\S]*?(<\/think>|$)/gi, '').replace(/\uFFFD/g, '').trim();
+                    
+                    if ((aiMsg.match(/```/g) || []).length % 2 !== 0) {
+                        aiMsg += '\n```';
+                    }
                     
                     if (aiMsg) {
                         const aiTimestamp = Date.now();
@@ -352,8 +644,30 @@
         }
 
         async function loadCommunityMessages() {
+            // FIX: Capture the requested channel at the start to prevent race conditions 
+            // where a delayed fetch overrides a newly joined channel.
+            const requestedChannel = currentChannel;
+            
             try {
-                const response = await fetch(CLOUDFLARE_WORKER_URL);
+                const url = new URL(CLOUDFLARE_WORKER_URL);
+                url.searchParams.append('channel', requestedChannel);
+                if (currentPassword) {
+                    url.searchParams.append('password', currentPassword);
+                }
+                
+                const response = await fetch(url.toString());
+                
+                // CRITICAL CHECK: If user switched channels while this fetch was loading, discard it!
+                if (currentChannel !== requestedChannel) return;
+
+                // Handle Protected Groups
+                if (response.status === 403) {
+                    clearInterval(communityPollingInterval);
+                    chatBox.innerHTML = '';
+                    renderSystemMessage("ACCESS DENIED. INCORRECT PASSWORD.");
+                    return;
+                }
+
                 if (!response.ok) return;
                 const messages = await response.json();
                 
@@ -363,12 +677,10 @@
                     return; 
                 }
 
-                // If we have messages and it's the first real load, clear the "no messages" notice
                 if (messages.length > 0 && chatBox.innerHTML.includes("VOID DETECTED")) {
                     chatBox.innerHTML = '';
                 }
 
-                // Update recent messages context for AI (keep last 15 messages)
                 recentCommunityMessages = messages.slice(-15);
 
                 const currentUserName = nameInput.value.trim().toLowerCase();
@@ -385,7 +697,6 @@
                     }
                 });
 
-                // Auto-scroll ONLY if the user is already near the bottom
                 if (newlyAdded && !isScrolledUp) {
                     chatBox.scrollTop = chatBox.scrollHeight;
                 }
@@ -417,7 +728,6 @@
                 timeClass = 'bg-gray-200 text-black border-2 border-black shadow-[2px_2px_0_0_#000]';
             }
 
-            // Secure the text & parse markdown codeblocks
             let safeText = isHtml ? text : escapeHTML(text);
             
             if (!isHtml) {
@@ -432,19 +742,12 @@
                     } else {
                         let parsed = part;
                         
-                        // 1. Lists (Bullet points)
                         parsed = parsed.replace(/^[\-\*]\s+(.*)$/gm, '<li class="ml-5 list-disc my-1">$1</li>');
-                        
-                        // 2. Inline formats (Inline Code, Bold, Underline, Italics)
                         parsed = parsed.replace(/`([^`]+)`/g, '<code class="bg-gray-200 text-red-600 px-1 border border-black font-mono">$1</code>');
                         parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="font-black">$1</strong>');
                         parsed = parsed.replace(/__(.*?)__/g, '<u class="underline decoration-2 underline-offset-2">$1</u>');
                         parsed = parsed.replace(/_([^_]+)_/g, '<em class="italic">$1</em>');
-                        
-                        // 3. Newlines
                         parsed = parsed.replace(/\n/g, '<br>');
-                        
-                        // 4. Cleanup trailing <br> tags around list items
                         parsed = parsed.replace(/(<\/li>)<br>/g, '$1');
                         parsed = parsed.replace(/<br>(<li)/g, '$1');
                         
@@ -458,10 +761,10 @@
             wrapper.innerHTML = `
                 <div class="flex flex-col max-w-[85%] sm:max-w-[75%] ${type === 'me' ? 'items-end' : 'items-start'}">
                     <div class="flex items-center space-x-2 mb-2 px-1">
-                        <span class="text-sm font-black uppercase tracking-tight ${authorClass}">${safeAuthor}</span>
-                        <span class="text-[10px] font-bold px-1.5 py-0.5 ${timeClass}">${timeString}</span>
+                        <span class="text-xs sm:text-sm font-black uppercase tracking-tight ${authorClass}">${safeAuthor}</span>
+                        <span class="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 ${timeClass}">${timeString}</span>
                     </div>
-                    <div class="px-5 py-3 text-sm sm:text-base font-bold leading-relaxed break-words ${bubbleClass}">
+                    <div class="px-4 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base font-bold leading-relaxed break-words ${bubbleClass}">
                         ${safeText}
                     </div>
                 </div>
@@ -470,7 +773,6 @@
             const isScrolledUp = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight > 100;
             chatBox.appendChild(wrapper);
             
-            // Only auto-scroll if the user is already near the bottom, OR if the message is from the user
             if (!isScrolledUp || type === 'me') {
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
